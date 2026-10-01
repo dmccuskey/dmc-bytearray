@@ -82,27 +82,22 @@ To update, copy `dmc_corona_boot.lua` and `dmc_corona/` again from the newer ver
 
 ## Documentation
 
-`require 'dmc_corona.dmc_bytearray'` returns lua-bytearray's `ByteArray` class, so its documentation applies as written:
+`require 'dmc_corona.dmc_bytearray'` returns lua-bytearray's `ByteArray` class (0.5.0), with `VERSION` added, so its documentation applies as written:
 
 - [How It Works](https://github.com/dmccuskey/lua-bytearray#how-it-works): a string and a read position
 - [Reference](https://github.com/dmccuskey/lua-bytearray#reference): the properties, the byte and string methods, and `BufferError`
 - [In Solar2D](https://github.com/dmccuskey/lua-bytearray#in-solar2d): the typed number methods (`readInt()`, `writeDouble()`, ...) need the lpack C module, which Solar2D doesn't include, so they are missing here (`attempt to call method 'writeUShort'`)
-- [Known Issues](https://github.com/dmccuskey/lua-bytearray#known-issues) of the byte array
+- [Known Issues](https://github.com/dmccuskey/lua-bytearray#known-issues) of the byte array: `search()` takes a Lua pattern and searches the whole buffer, not from the position; every write copies the whole buffer, so many small writes into a large array are slow
+
+`ByteArray.VERSION` is dmc-bytearray's version and `ByteArray.__version` lua-bytearray's.
 
 ## Configuration
 
 dmc-bytearray has no settings: `dmc_corona.cfg` needs no section for it, only the `[DMC_CORONA]` section that tells the loader where the libraries are. See [dmc-corona-boot Configuration](https://github.com/dmccuskey/dmc-corona-boot/blob/master/docs/configuration.md).
 
-## Known Issues
-
-The bugs of the byte array itself are in lua-bytearray's [Known Issues](https://github.com/dmccuskey/lua-bytearray#known-issues); the ones most likely to be met in Solar2D: `readBytes()` and `writeBytes()` write from index 1 by default, over what the destination holds, and `readBytes()`'s default length is the destination's `bytesAvailable`. In `dmc_bytearray.lua`:
-
-- It sets the global `_extend` (its copy of `Utils.extend()` declares the inner function without `local`).
-- Its version (`0.1.0`) isn't available to code.
-
 ## Development
 
-Only `dmc_corona/dmc_bytearray.lua` is written in this repository. It loads the DMC boot loader and returns lua-bytearray's class from `lib.dmc_lua.lua_bytearray`. Everything else is a generated copy; fix it in its own repository, then rebuild:
+Only `dmc_corona/dmc_bytearray.lua` and `tests/` are written in this repository. `dmc_bytearray.lua` loads the DMC boot loader and returns lua-bytearray's class from `lib.dmc_lua.lua_bytearray`, with `VERSION` set on it: the class itself, not a copy, since a copy would be a second class and `isa()` checks against the other name would fail. Everything else is a generated copy; fix it in its own repository, then rebuild:
 
 | file | owner |
 |---|---|
@@ -115,7 +110,13 @@ The copies are made by Snakemake from sibling checkouts of the repositories abov
 snakemake --cores 1 build_all
 ```
 
-dmc-bytearray has no tests of its own; lua-bytearray's are in its `spec/`. The Quick Start is the check that the package loads in Solar2D.
+The unit tests check the wrapper, the Quick Start, and that lua-bytearray's fixes come through it; lua-bytearray's full specs are in its `spec/`. They run under plain Lua 5.1 with dkjson, with stand-ins for the Solar2D globals the boot loader uses. From the repository's root folder:
+
+```sh
+tests/run_unit.sh
+```
+
+The Quick Start is the check that the package loads in Solar2D.
 
 ## License
 
